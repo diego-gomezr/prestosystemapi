@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+    <http:listener-config name="customer-presto-system-api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" />
+    <db:generic-config name="Generic_Database_Configuration" url="jdbc:presto://localhost:8085/mysql/customer?user=root" driverClassName="prestosystemapi.PrestoDriver" doc:name="Generic Database Configuration" />
+    <apikit:config name="customer-presto-system-api-config" raml="customer-presto-system-api.raml" consoleEnabled="false" doc:name="Router" />
+    <flow name="customer-presto-system-api-main">
+        <http:listener config-ref="customer-presto-system-api-httpListenerConfig" path="/api/*" doc:name="HTTP" />
+        <apikit:router config-ref="customer-presto-system-api-config" doc:name="APIkit Router" />
+        <exception-strategy ref="customer-presto-system-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy" />
+    </flow>
+    <flow name="customer-presto-system-api-console">
+        <http:listener config-ref="customer-presto-system-api-httpListenerConfig" path="/console/*" doc:name="HTTP" />
+        <apikit:console config-ref="customer-presto-system-api-config" doc:name="APIkit Console" />
+    </flow>
+    <flow name="get:/presto/customers:customer-presto-system-api-config">
+        <db:select config-ref="Generic_Database_Configuration" doc:name="Get_Customers_Presto">
+            <db:parameterized-query><![CDATA[select * from customer]]></db:parameterized-query>
+        </db:select>
+        <dw:transform-message doc:name="Transform Message">
+            <dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+payload]]></dw:set-payload>
+        </dw:transform-message>
+    </flow>
+    <flow name="get:/presto/customers/presto/{customer_id}:customer-presto-system-api-config">
+        <set-payload value="{&#xA;&quot;id&quot; : 01,&#xA;&quot;name&quot; : &quot;Eagle Airlines&quot;,&#xA;&quot;email&quot; : &quot;customer@eagle-airlines.com&quot;,&#xA;&quot;billTo-street&quot; : &quot;2244 Craftman St&quot;,&#xA;&quot;billTo-city&quot; : &quot;Santa Barbara&quot;,&#xA;&quot;billTo-state&quot; : &quot;Ca&quot;,&#xA;&quot;billTo-zip&quot; : &quot;94673-9600&quot;,&#xA;&quot;billTo-country&quot; : &quot;USA&quot;,&#xA;&quot;lastMmodified&quot; : &quot;2017-03-28 22:01:36 s&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <apikit:mapping-exception-strategy name="customer-presto-system-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property" />
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload" />
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
